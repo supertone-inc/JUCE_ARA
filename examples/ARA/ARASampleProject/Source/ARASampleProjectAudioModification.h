@@ -5,7 +5,13 @@
 class ARASampleProjectAudioModification    : public ARAAudioModification
 {
 public:
-    using ARAAudioModification::ARAAudioModification;
+    ARASampleProjectAudioModification (ARAAudioSource* audioSource, ARA::ARAAudioModificationHostRef hostRef,
+                                       const ARAAudioModification* optionalModificationToClone)
+        : ARAAudioModification (audioSource, hostRef, optionalModificationToClone)
+    {
+        if (auto toClone = static_cast<const ARASampleProjectAudioModification*> (optionalModificationToClone))
+            reversePlayback = toClone->reversePlayback;
+    }
 
     bool getReversePlayback() const { return reversePlayback; }
     void setReversePlayback (bool reverse) { reversePlayback = reverse; }
