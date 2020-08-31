@@ -74,7 +74,8 @@ void PlaybackRegionView::paint (Graphics& g)
     g.setColour (regionColour);
     g.fillRect (rect);
 
-    if (playbackRegion->getAudioModification()->getAudioSource()->isSampleAccessEnabled())
+    auto audioModification = playbackRegion->getAudioModification<ARASampleProjectAudioModification>();
+    if (audioModification->getAudioSource()->isSampleAccessEnabled())
     {
         auto clipBounds = g.getClipBounds();
         if (clipBounds.getWidth() > 0)
@@ -101,6 +102,8 @@ void PlaybackRegionView::paint (Graphics& g)
     g.setColour (regionColour.contrasting (1.0f));
     g.setFont (Font (12.0f));
     g.drawText (convertOptionalARAString (playbackRegion->getEffectiveName()), rect, Justification::topLeft);
+
+    g.drawText ((audioModification->getReversePlayback() ? "<==" : "==>"), rect, Justification::bottomLeft);
 }
 
 //==============================================================================
