@@ -1,23 +1,23 @@
 #pragma once
 
 #include "JuceHeader.h"
-#include "TrackHeaderView.h"
+#include "RegionSequenceHeaderView.h"
 
 class DocumentView;
 class PlaybackRegionView;
 
 //==============================================================================
 /**
-    RegionSequenceViewController
+    RegionSequenceViewContainer
     Class used to manage all views associated with an ARA region sequence.
-    This includes a track header view containing ARA region sequence data
+    This includes a header view containing ARA region sequence data
     and views for all ARA playback regions in the given region sequence.
 */
-class RegionSequenceViewController  : private ARARegionSequence::Listener
+class RegionSequenceViewContainer  : private ARARegionSequence::Listener
 {
 public:
-    RegionSequenceViewController (DocumentView& documentView, ARARegionSequence* sequence);
-    ~RegionSequenceViewController();
+    RegionSequenceViewContainer (DocumentView& documentView, ARARegionSequence* sequence);
+    ~RegionSequenceViewContainer();
 
     ARARegionSequence* getRegionSequence() const { return regionSequence; }     // careful: may return nullptr!
     Range<double> getTimeRange() const { return (regionSequence != nullptr) ? regionSequence->getTimeRange() : Range<double>(); }
@@ -32,7 +32,7 @@ public:
     void willUpdateRegionSequenceProperties (ARARegionSequence* regionSequence, ARARegionSequence::PropertiesPtr newProperties) override;
 
     DocumentView& getDocumentView() const { return documentView; }
-    const TrackHeaderView& getTrackHeaderView() const { return trackHeaderView; }
+    const RegionSequenceHeaderView& getRegionSequenceHeaderView() const { return regionSequenceHeaderView; }
 
 private:
     void addRegionSequenceViewAndMakeVisible (ARAPlaybackRegion* playbackRegion);
@@ -42,8 +42,8 @@ private:
     DocumentView& documentView;
     ARARegionSequence* regionSequence;
 
-    TrackHeaderView trackHeaderView;
+    RegionSequenceHeaderView regionSequenceHeaderView;
     OwnedArray<PlaybackRegionView> playbackRegionViews;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RegionSequenceViewController)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RegionSequenceViewContainer)
 };

@@ -1,34 +1,34 @@
-#include "RegionSequenceViewController.h"
+#include "RegionSequenceViewContainer.h"
 #include "DocumentView.h"
 #include "PlaybackRegionView.h"
 
 //==============================================================================
-RegionSequenceViewController::RegionSequenceViewController (DocumentView& docView, ARARegionSequence* sequence)
+RegionSequenceViewContainer::RegionSequenceViewContainer (DocumentView& docView, ARARegionSequence* sequence)
     : documentView (docView),
       regionSequence (sequence),
-      trackHeaderView (docView.getARAEditorView(), regionSequence)
+      regionSequenceHeaderView (docView.getARAEditorView(), regionSequence)
 {
     regionSequence->addListener (this);
 
-    documentView.getTrackHeadersView().addAndMakeVisible (trackHeaderView);
+    documentView.getRegionSequenceHeadersView().addAndMakeVisible (regionSequenceHeaderView);
 
     for (auto playbackRegion : regionSequence->getPlaybackRegions<ARAPlaybackRegion>())
         addRegionSequenceViewAndMakeVisible (playbackRegion);
 }
 
-RegionSequenceViewController::~RegionSequenceViewController()
+RegionSequenceViewContainer::~RegionSequenceViewContainer()
 {
     detachFromRegionSequence();
 }
 
-void RegionSequenceViewController::addRegionSequenceViewAndMakeVisible (ARAPlaybackRegion* playbackRegion)
+void RegionSequenceViewContainer::addRegionSequenceViewAndMakeVisible (ARAPlaybackRegion* playbackRegion)
 {
     auto view = new PlaybackRegionView (*this, playbackRegion);
     playbackRegionViews.add (view);
     documentView.getPlaybackRegionsView().addAndMakeVisible (view);
 }
 
-void RegionSequenceViewController::detachFromRegionSequence()
+void RegionSequenceViewContainer::detachFromRegionSequence()
 {
     if (regionSequence == nullptr)
         return;
@@ -39,16 +39,16 @@ void RegionSequenceViewController::detachFromRegionSequence()
 }
 
 //==============================================================================
-void RegionSequenceViewController::setRegionsViewBoundsByYRange (int y, int height)
+void RegionSequenceViewContainer::setRegionsViewBoundsByYRange (int y, int height)
 {
-    trackHeaderView.setBounds (0, y, trackHeaderView.getParentWidth(), height);
+    regionSequenceHeaderView.setBounds (0, y, regionSequenceHeaderView.getParentWidth(), height);
 
     for (auto regionView : playbackRegionViews)
         regionView->updateBounds();
 }
 
 //==============================================================================
-void RegionSequenceViewController::willRemovePlaybackRegionFromRegionSequence (ARARegionSequence* /*regionSequence*/, ARAPlaybackRegion* playbackRegion)
+void RegionSequenceViewContainer::willRemovePlaybackRegionFromRegionSequence (ARARegionSequence* /*regionSequence*/, ARAPlaybackRegion* playbackRegion)
 {
     for (int i = 0; i < playbackRegionViews.size(); ++i)
     {
@@ -62,21 +62,21 @@ void RegionSequenceViewController::willRemovePlaybackRegionFromRegionSequence (A
     documentView.invalidateRegionSequenceViews();
 }
 
-void RegionSequenceViewController::didAddPlaybackRegionToRegionSequence (ARARegionSequence* /*regionSequence*/, ARAPlaybackRegion* playbackRegion)
+void RegionSequenceViewContainer::didAddPlaybackRegionToRegionSequence (ARARegionSequence* /*regionSequence*/, ARAPlaybackRegion* playbackRegion)
 {
     addRegionSequenceViewAndMakeVisible (playbackRegion);
 
     documentView.invalidateRegionSequenceViews();
 }
 
-void RegionSequenceViewController::willDestroyRegionSequence (ARARegionSequence* /*regionSequence*/)
+void RegionSequenceViewContainer::willDestroyRegionSequence (ARARegionSequence* /*regionSequence*/)
 {
     detachFromRegionSequence();
 
     documentView.invalidateRegionSequenceViews();
 }
 
-void RegionSequenceViewController::willUpdateRegionSequenceProperties (ARARegionSequence* /*regionSequence*/, ARARegionSequence::PropertiesPtr newProperties)
+void RegionSequenceViewContainer::willUpdateRegionSequenceProperties (ARARegionSequence* /*regionSequence*/, ARARegionSequence::PropertiesPtr newProperties)
 {
     if (newProperties->color != regionSequence->getColor())
     {

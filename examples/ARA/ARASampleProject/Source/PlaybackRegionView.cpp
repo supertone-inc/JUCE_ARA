@@ -4,9 +4,9 @@
 #include "ARASampleProjectAudioModification.h"
 
 //==============================================================================
-PlaybackRegionView::PlaybackRegionView (RegionSequenceViewController& viewController, ARAPlaybackRegion* region)
-    : regionSequenceViewController (viewController),
-      documentView (regionSequenceViewController.getDocumentView()),
+PlaybackRegionView::PlaybackRegionView (RegionSequenceViewContainer& viewContainer, ARAPlaybackRegion* region)
+    : regionSequenceViewContainer (viewContainer),
+      documentView (regionSequenceViewContainer.getDocumentView()),
       playbackRegion (region),
       audioThumb (128, documentView.getAudioFormatManger(), *sharedAudioThumbnailCache)
 {
@@ -51,11 +51,11 @@ void PlaybackRegionView::mouseDoubleClick (const MouseEvent& /*event*/)
 void PlaybackRegionView::updateBounds()
 {
     const auto regionTimeRange = getTimeRange();
-    const auto& trackHeaderView = regionSequenceViewController.getTrackHeaderView();
+    const auto& regionSequenceHeaderView = regionSequenceViewContainer.getRegionSequenceHeaderView();
     const int startX = documentView.getPlaybackRegionsViewsXForTime (regionTimeRange.getStart());
     const int endX = documentView.getPlaybackRegionsViewsXForTime (regionTimeRange.getEnd());
     const int width = jmax (1, endX - startX);
-    setBounds (startX, trackHeaderView.getY(), width, trackHeaderView.getHeight());
+    setBounds (startX, regionSequenceHeaderView.getY(), width, regionSequenceHeaderView.getHeight());
 }
 
 //==============================================================================

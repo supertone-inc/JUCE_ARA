@@ -1,8 +1,8 @@
 #include "DocumentView.h"
 
-#include "RegionSequenceViewController.h"
+#include "RegionSequenceViewContainer.h"
 #include "PlaybackRegionView.h"
-#include "RulersView.h"
+#include "MusicalContextView.h"
 
 constexpr int kTrackHeight { 80 };
 
@@ -14,7 +14,7 @@ DocumentView::DocumentView (ARAEditorView* ev, const AudioPlayHead::CurrentPosit
       playbackRegionsViewport (*this),
       playHeadView (*this),
       timeRangeSelectionView (*this),
-      rulersView (*this),
+      musicallContextView (*this),
       pixelsPerSecond (lastPixelsPerSecond),
       positionInfo (posInfo)
 {
@@ -31,14 +31,14 @@ DocumentView::DocumentView (ARAEditorView* ev, const AudioPlayHead::CurrentPosit
     playbackRegionsViewport.setViewedComponent (&playbackRegionsView, false);
     addAndMakeVisible (playbackRegionsViewport);
 
-    trackHeadersViewport.setSize (120, getHeight());
-    trackHeadersViewport.setScrollBarsShown (false, false, false, false);
-    trackHeadersViewport.setViewedComponent (&trackHeadersView, false);
-    addAndMakeVisible (trackHeadersViewport);
+    regionSequenceHeadersViewport.setSize (120, getHeight());
+    regionSequenceHeadersViewport.setScrollBarsShown (false, false, false, false);
+    regionSequenceHeadersViewport.setViewedComponent (&regionSequenceHeadersView, false);
+    addAndMakeVisible (regionSequenceHeadersViewport);
 
-    rulersViewport.setScrollBarsShown (false, false, false, false);
-    rulersViewport.setViewedComponent (&rulersView, false);
-    addAndMakeVisible (rulersViewport);
+    musicalContextViewport.setScrollBarsShown (false, false, false, false);
+    musicalContextViewport.setViewedComponent (&musicallContextView, false);
+    addAndMakeVisible (musicalContextViewport);
 
     getARAEditorView()->addListener (this);
     getDocument()->addListener (this);
@@ -151,8 +151,8 @@ void DocumentView::resized()
     // store visible playhead postion (in main view coordinates)
     int previousPlayHeadX = getPlaybackRegionsViewsXForTime (lastReportedPosition.timeInSeconds) - playbackRegionsViewport.getViewPosition().getX();
 
-    const int trackHeaderWidth = trackHeadersViewport.getWidth();
-    const int rulersViewHeight = rulersViewport.isVisible() ? 3*20 : 0;
+    const int regionSequenceHeaderWidth = regionSequenceHeadersViewport.getWidth();
+    const int musicalContextViewHeight = musicalContextViewport.isVisible() ? 3*20 : 0;
 
     // update zoom
     double playbackRegionsViewWidthDbl = timeRange.getLength() * pixelsPerSecond;
@@ -165,23 +165,23 @@ void DocumentView::resized()
 
     // min zoom is limited by covering entire view range
     // TODO JUCE_ARA getScrollBarThickness() should only be substracted if vertical scroll bar is actually visible
-    const int minPlaybackRegionsViewWidth = getWidth() - trackHeaderWidth - playbackRegionsViewport.getScrollBarThickness();
+    const int minPlaybackRegionsViewWidth = getWidth() - regionSequenceHeaderWidth - playbackRegionsViewport.getScrollBarThickness();
     playbackRegionsViewWidth = jmax (minPlaybackRegionsViewWidth, playbackRegionsViewWidth);
     pixelsPerSecond = playbackRegionsViewWidth / timeRange.getLength();
     lastPixelsPerSecond = pixelsPerSecond;
 
     // update sizes and positions of all views
-    playbackRegionsViewport.setBounds (trackHeaderWidth, rulersViewHeight, getWidth() - trackHeaderWidth, getHeight() - rulersViewHeight);
-    playbackRegionsView.setBounds (0, 0, playbackRegionsViewWidth, jmax (kTrackHeight * regionSequenceViewControllers.size(), playbackRegionsViewport.getHeight() - playbackRegionsViewport.getScrollBarThickness()));
+    playbackRegionsViewport.setBounds (regionSequenceHeaderWidth, musicalContextViewHeight, getWidth() - regionSequenceHeaderWidth, getHeight() - musicalContextViewHeight);
+    playbackRegionsView.setBounds (0, 0, playbackRegionsViewWidth, jmax (kTrackHeight * regionSequenceViewContainers.size(), playbackRegionsViewport.getHeight() - playbackRegionsViewport.getScrollBarThickness()));
 
-    rulersViewport.setBounds (trackHeaderWidth, 0, playbackRegionsViewport.getMaximumVisibleWidth(), rulersViewHeight);
-    rulersView.setBounds (0, 0, playbackRegionsViewWidth, rulersViewHeight);
+    musicalContextViewport.setBounds (regionSequenceHeaderWidth, 0, playbackRegionsViewport.getMaximumVisibleWidth(), musicalContextViewHeight);
+    musicallContextView.setBounds (0, 0, playbackRegionsViewWidth, musicalContextViewHeight);
 
-    trackHeadersViewport.setBounds (0, rulersViewHeight, trackHeadersViewport.getWidth(), playbackRegionsViewport.getMaximumVisibleHeight());
-    trackHeadersView.setBounds (0, 0, trackHeadersViewport.getWidth(), playbackRegionsView.getHeight());
+    regionSequenceHeadersViewport.setBounds (0, musicalContextViewHeight, regionSequenceHeadersViewport.getWidth(), playbackRegionsViewport.getMaximumVisibleHeight());
+    regionSequenceHeadersView.setBounds (0, 0, regionSequenceHeadersViewport.getWidth(), playbackRegionsView.getHeight());
 
     int y = 0;
-    for (auto v : regionSequenceViewControllers)
+    for (auto v : regionSequenceViewContainers)
     {
         v->setRegionsViewBoundsByYRange (y, kTrackHeight);
         y += kTrackHeight;
@@ -196,7 +196,7 @@ void DocumentView::resized()
     auto relativeViewportPosition = playbackRegionsViewport.getViewPosition();
     relativeViewportPosition.setX (getPlaybackRegionsViewsXForTime (lastReportedPosition.timeInSeconds) - previousPlayHeadX);
     playbackRegionsViewport.setViewPosition (relativeViewportPosition);
-    rulersViewport.setViewPosition (relativeViewportPosition.getX(), 0);
+    musicalContextViewport.setViewPosition (relativeViewportPosition.getX(), 0);
 }
 
 //==============================================================================
@@ -222,19 +222,19 @@ void DocumentView::rebuildRegionSequenceViews()
 {
     // always deleting all region sequence views and in turn their playback regions including their
     // audio thumbs isn't particularly effective - in an actual plug-in this would need to optimized.
-    regionSequenceViewControllers.clear();
+    regionSequenceViewContainers.clear();
 
     if (showOnlySelectedRegionSequences)
     {
         for (auto selectedSequence : getARAEditorView()->getViewSelection().getEffectiveRegionSequences<ARARegionSequence>())
-            regionSequenceViewControllers.add (new RegionSequenceViewController (*this, selectedSequence));
+            regionSequenceViewContainers.add (new RegionSequenceViewContainer (*this, selectedSequence));
     }
     else    // show all RegionSequences of Document...
     {
         for (auto regionSequence : getDocument()->getRegionSequences<ARARegionSequence>())
         {
             if (! ARA::contains (getARAEditorView()->getHiddenRegionSequences(), regionSequence))
-                regionSequenceViewControllers.add (new RegionSequenceViewController (*this, regionSequence));
+                regionSequenceViewContainers.add (new RegionSequenceViewContainer (*this, regionSequence));
         }
     }
 
@@ -247,10 +247,10 @@ void DocumentView::rebuildRegionSequenceViews()
 void DocumentView::calculateTimeRange()
 {
     Range<double> newTimeRange;
-    if (! regionSequenceViewControllers.isEmpty())
+    if (! regionSequenceViewContainers.isEmpty())
     {
         bool isFirst = true;
-        for (auto v : regionSequenceViewControllers)
+        for (auto v : regionSequenceViewContainers)
         {
             if (v->isEmpty())
                 continue;
@@ -313,6 +313,6 @@ void DocumentView::ScrollMasterViewport::visibleAreaChanged (const Rectangle<int
 {
     Viewport::visibleAreaChanged (newVisibleArea);
     
-    documentView.getRulersViewport().setViewPosition (newVisibleArea.getX(), 0);
-    documentView.getTrackHeadersViewport().setViewPosition (0, newVisibleArea.getY());
+    documentView.getMusicalContextViewport().setViewPosition (newVisibleArea.getX(), 0);
+    documentView.getRegionSequenceHeadersViewport().setViewPosition (0, newVisibleArea.getY());
 }

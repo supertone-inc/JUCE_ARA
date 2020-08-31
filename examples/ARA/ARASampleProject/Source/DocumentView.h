@@ -1,9 +1,9 @@
 #pragma once
 
 #include "JuceHeader.h"
-#include "RulersView.h"
+#include "MusicalContextView.h"
 
-class RegionSequenceViewController;
+class RegionSequenceViewContainer;
 class PlaybackRegionView;
 
 //==============================================================================
@@ -41,8 +41,8 @@ public:
     // currently visible time range
     Range<double> getVisibleTimeRange() const;
 
-    // rulers view access
-    const RulersView& getRulersView() const { return rulersView; }
+    // musical context view access
+    const MusicalContextView& getMusicalContextView() const { return musicallContextView; }
 
     // convert between time and x coordinate
     int getPlaybackRegionsViewsXForTime (double time) const;
@@ -65,9 +65,9 @@ public:
 
     // misc. getters
     Component& getPlaybackRegionsView() { return playbackRegionsView; }
-    Component& getTrackHeadersView() { return trackHeadersView; }
-    Viewport& getTrackHeadersViewport() { return trackHeadersViewport; }
-    Viewport& getRulersViewport() { return rulersViewport; }
+    Component& getRegionSequenceHeadersView() { return regionSequenceHeadersView; }
+    Viewport& getRegionSequenceHeadersViewport() { return regionSequenceHeadersViewport; }
+    Viewport& getMusicalContextViewport() { return musicalContextViewport; }
 
     AudioFormatManager& getAudioFormatManger() { return audioFormatManger; }
 
@@ -119,16 +119,16 @@ private:
 
     ARAEditorView* const editorView;
 
-    OwnedArray<RegionSequenceViewController> regionSequenceViewControllers;
+    OwnedArray<RegionSequenceViewContainer> regionSequenceViewContainers;
 
     ScrollMasterViewport playbackRegionsViewport;
     Component playbackRegionsView;
     PlayHeadView playHeadView;
     TimeRangeSelectionView timeRangeSelectionView;
-    Viewport trackHeadersViewport;
-    Component trackHeadersView;
-    Viewport rulersViewport;
-    RulersView rulersView;
+    Viewport regionSequenceHeadersViewport;
+    Component regionSequenceHeadersView;
+    Viewport musicalContextViewport;
+    MusicalContextView musicallContextView;
 
     AudioFormatManager audioFormatManger;
 

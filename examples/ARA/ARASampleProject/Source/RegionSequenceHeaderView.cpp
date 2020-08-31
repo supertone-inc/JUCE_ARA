@@ -1,7 +1,7 @@
-#include "TrackHeaderView.h"
+#include "RegionSequenceHeaderView.h"
 
 //==============================================================================
-TrackHeaderView::TrackHeaderView (ARAEditorView* view, ARARegionSequence* sequence)
+RegionSequenceHeaderView::RegionSequenceHeaderView (ARAEditorView* view, ARARegionSequence* sequence)
     : editorView (view),
       regionSequence (sequence)
 {
@@ -11,12 +11,12 @@ TrackHeaderView::TrackHeaderView (ARAEditorView* view, ARARegionSequence* sequen
     onNewSelection (editorView->getViewSelection());
 }
 
-TrackHeaderView::~TrackHeaderView()
+RegionSequenceHeaderView::~RegionSequenceHeaderView()
 {
     detachFromRegionSequence();
 }
 
-void TrackHeaderView::detachFromRegionSequence()
+void RegionSequenceHeaderView::detachFromRegionSequence()
 {
     if (regionSequence == nullptr)
         return;
@@ -29,7 +29,7 @@ void TrackHeaderView::detachFromRegionSequence()
 }
 
 //==============================================================================
-void TrackHeaderView::paint (juce::Graphics& g)
+void RegionSequenceHeaderView::paint (juce::Graphics& g)
 {
     if (regionSequence == nullptr)
         return;
@@ -49,7 +49,7 @@ void TrackHeaderView::paint (juce::Graphics& g)
 }
 
 //==============================================================================
-void TrackHeaderView::onNewSelection (const ARAViewSelection& viewSelection)
+void RegionSequenceHeaderView::onNewSelection (const ARAViewSelection& viewSelection)
 {
     bool selected = ARA::contains (viewSelection.getRegionSequences(), regionSequence);
     if (selected != isSelected)
@@ -59,12 +59,12 @@ void TrackHeaderView::onNewSelection (const ARAViewSelection& viewSelection)
     }
 }
 
-void TrackHeaderView::didUpdateRegionSequenceProperties (ARARegionSequence* /*regionSequence*/)
+void RegionSequenceHeaderView::didUpdateRegionSequenceProperties (ARARegionSequence* /*regionSequence*/)
 {
     repaint();
 }
 
-void TrackHeaderView::willDestroyRegionSequence (ARARegionSequence* /*regionSequence*/)
+void RegionSequenceHeaderView::willDestroyRegionSequence (ARARegionSequence* /*regionSequence*/)
 {
     detachFromRegionSequence();
 }

@@ -1,11 +1,11 @@
-#include "RulersView.h"
+#include "MusicalContextView.h"
 #include "DocumentView.h"
 
 #include "ARA_Library/Utilities/ARAPitchInterpretation.h"
 #include "ARA_Library/Utilities/ARATimelineConversion.h"
 
 //==============================================================================
-RulersView::RulersView (DocumentView& docView)
+MusicalContextView::MusicalContextView (DocumentView& docView)
     : documentView (docView),
       document (docView.getDocument()),
       musicalContext (nullptr)
@@ -16,13 +16,13 @@ RulersView::RulersView (DocumentView& docView)
     startTimerHz (20);
 }
 
-RulersView::~RulersView()
+MusicalContextView::~MusicalContextView()
 {
     detachFromMusicalContext();
     detachFromDocument();
 }
 
-void RulersView::detachFromDocument()
+void MusicalContextView::detachFromDocument()
 {
     if (document == nullptr)
         return;
@@ -32,7 +32,7 @@ void RulersView::detachFromDocument()
     document = nullptr;
 }
 
-void RulersView::detachFromMusicalContext()
+void MusicalContextView::detachFromMusicalContext()
 {
     if (musicalContext == nullptr)
         return;
@@ -42,7 +42,7 @@ void RulersView::detachFromMusicalContext()
     musicalContext = nullptr;
 }
 
-void RulersView::findMusicalContext()
+void MusicalContextView::findMusicalContext()
 {
     // evaluate selection
     ARAMusicalContext* newMusicalContext = nullptr;
@@ -67,7 +67,7 @@ void RulersView::findMusicalContext()
     }
 }
 
-void RulersView::timerCallback()
+void MusicalContextView::timerCallback()
 {
     auto positionInfo = documentView.getPlayHeadPositionInfo();
     if (lastPaintedPosition.ppqLoopStart != positionInfo.ppqLoopStart ||
@@ -79,7 +79,7 @@ void RulersView::timerCallback()
 }
 
 //==============================================================================
-void RulersView::paint (juce::Graphics& g)
+void MusicalContextView::paint (juce::Graphics& g)
 {
     const auto bounds = g.getClipBounds();
 
@@ -207,7 +207,7 @@ void RulersView::paint (juce::Graphics& g)
 
 //==============================================================================
 
-void RulersView::mouseDown (const MouseEvent& event)
+void MusicalContextView::mouseDown (const MouseEvent& event)
 {
     // use mouse click to set the playhead position in the host (if they provide a playback controller interface)
     auto hostPlaybackController = musicalContext->getDocumentController()->getHostPlaybackController();
@@ -215,7 +215,7 @@ void RulersView::mouseDown (const MouseEvent& event)
         hostPlaybackController->requestSetPlaybackPosition (documentView.getPlaybackRegionsViewsTimeForX (roundToInt (event.position.x)));
 }
 
-void RulersView::mouseDoubleClick (const MouseEvent& /*event*/)
+void MusicalContextView::mouseDoubleClick (const MouseEvent& /*event*/)
 {
     // use mouse double click to start host playback (if they provide a playback controller interface)
     auto hostPlaybackController = musicalContext->getDocumentController()->getHostPlaybackController();
@@ -225,34 +225,34 @@ void RulersView::mouseDoubleClick (const MouseEvent& /*event*/)
 
 //==============================================================================
 
-void RulersView::onNewSelection (const ARA::PlugIn::ViewSelection& /*viewSelection*/)
+void MusicalContextView::onNewSelection (const ARA::PlugIn::ViewSelection& /*viewSelection*/)
 {
     findMusicalContext();
 }
 
-void RulersView::didEndEditing (ARADocument* /*doc*/)
+void MusicalContextView::didEndEditing (ARADocument* /*doc*/)
 {
     if (musicalContext == nullptr)
         findMusicalContext();
 }
 
-void RulersView::willRemoveMusicalContextFromDocument (ARADocument* /*document*/, ARAMusicalContext* context)
+void MusicalContextView::willRemoveMusicalContextFromDocument (ARADocument* /*document*/, ARAMusicalContext* context)
 {
     if (musicalContext == context)
         detachFromMusicalContext();     // will restore in didEndEditing()
 }
 
-void RulersView::didReorderMusicalContextsInDocument (ARADocument* /*document*/)
+void MusicalContextView::didReorderMusicalContextsInDocument (ARADocument* /*document*/)
 {
     if (musicalContext != document->getMusicalContexts().front())
         detachFromMusicalContext();     // will restore in didEndEditing()
 }
- void RulersView::willDestroyDocument (ARADocument* /*document*/)
+ void MusicalContextView::willDestroyDocument (ARADocument* /*document*/)
 {
     detachFromDocument();
 }
 
-void RulersView::doUpdateMusicalContextContent (ARAMusicalContext* /*musicalContext*/, ARAContentUpdateScopes /*scopeFlags*/)
+void MusicalContextView::doUpdateMusicalContextContent (ARAMusicalContext* /*musicalContext*/, ARAContentUpdateScopes /*scopeFlags*/)
 {
     repaint();
 }

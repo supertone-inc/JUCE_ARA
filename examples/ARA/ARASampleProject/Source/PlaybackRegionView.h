@@ -1,7 +1,7 @@
 #pragma once
 
 #include "JuceHeader.h"
-#include "RegionSequenceViewController.h"
+#include "RegionSequenceViewContainer.h"
 
 //==============================================================================
 /**
@@ -18,7 +18,7 @@ class PlaybackRegionView    : public Component,
                               private ARAPlaybackRegion::Listener
 {
 public:
-    PlaybackRegionView (RegionSequenceViewController& viewController, ARAPlaybackRegion* region);
+    PlaybackRegionView (RegionSequenceViewContainer& viewContainer, ARAPlaybackRegion* region);
     ~PlaybackRegionView();
 
     ARAPlaybackRegion* getPlaybackRegion() const { return playbackRegion; }
@@ -67,7 +67,7 @@ private:
     };
     SharedResourcePointer<SharedAudioThumbnailCache> sharedAudioThumbnailCache;
 
-    RegionSequenceViewController& regionSequenceViewController;
+    RegionSequenceViewContainer& regionSequenceViewContainer;
     DocumentView& documentView;
     ARAPlaybackRegion* playbackRegion;
     bool isSelected { false };

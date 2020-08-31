@@ -6,18 +6,18 @@ class DocumentView;
 
 //==============================================================================
 /**
-    RulersView
-    JUCE component used to display rulers for song time (in seconds and musical beats) and chords
+    MusicalContextView
+    JUCE component used to display musical context data: rulers for song time (in seconds and musical beats) and chords
 */
-class RulersView  : public Component,
+class MusicalContextView  : public Component,
                     private ARAEditorView::Listener,
                     private ARADocument::Listener,
                     private ARAMusicalContext::Listener,
                     private juce::Timer
 {
 public:
-    RulersView (DocumentView& documentView);
-    ~RulersView();
+    MusicalContextView (DocumentView& documentView);
+    ~MusicalContextView();
 
     // may return nullptr
     ARAMusicalContext* getCurrentMusicalContext() const { return musicalContext; }
@@ -54,5 +54,5 @@ private:
     ARAMusicalContext* musicalContext;
     AudioPlayHead::CurrentPositionInfo lastPaintedPosition;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RulersView)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MusicalContextView)
 };
