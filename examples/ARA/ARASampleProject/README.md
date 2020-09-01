@@ -1,241 +1,51 @@
-## Understanding the ARA Sample Project
+## ARASampleProject
 
 In addition to the sample ARATestPlugIn provided in the ARA SDK, we've worked with SoundRadix to create 
 a sample project showcasing the ARA additions to the JUCE API. The sample project can be found at 
 [JUCE_ARA/examples/ARA/ARASampleProject](https://github.com/Celemony/JUCE_ARA/tree/develop/examples/ARA/ARASampleProject). 
+
 Below is an example of the plugin being hosted by Studio One. 
 
-<img src="https://i.imgur.com/gK7GZq8.png"/>
+<img src="https://i.imgur.com/NaMNBol.gif"/>
 
-As seen above, the plug-in shows the region sequences and playback regions within their musical context in a zoomable/scrollable arrangement view. 
-Time in seconds and in musical beats and chords are drawn in rulers above the arrangement. 
-Name and color of the arrangement objects are used if provided. Selected objects and time range are highlighted, and hidden region sequences are not displayed.
+The plug-in has a few features designed to be educational for both host and plug-in developers that we will outline below. 
 
-The current playback position reported by the ARA companion API host is shown.
-By clicking or double-clicking on the rulers, the plug-in requests the host to reposition or start playback.
+### Model Object Property Visualiztion
 
-During playback, the plug-in passes through the underlying audio source samples without further processing. 
-Playback can be reversed by double clicking a playback region - this reverse state is stored in a custom
-subclass of `ARAAudioModification`, and is persisted as a part of the ARA document archive. 
+The [RegionSequenceHeaderView](Source/RegionSequenceHeaderView.h) and [PlaybackRegionView](Source/PlaybackRegionView.h) classes will draw the name and color of their respective model objects by listening to changes in their properties. See their `ARARegionSequence` and `ARAPlaybackRegion` callbacks for more details. 
 
-In addition to demonstrating ARA integration with JUCE, the sample is also a valuable tool when implementing ARA hosts - it provides visual feedback for the model graph published by the host, 
-and supports many view integration features as described above.
-Furthermore, playing with the project settings with the Projucer can be a good way to verify a hosts ability
-to detect ARA plugin properties.
+<img src="https://i.imgur.com/3Cc4uEq.gif"/>
 
-Below we'll go over several important classes and how they interact with the ARA API. 
+### Selection
 
-#### `ARASampleProjectDocumentController`
+By listening to the `ARAEditorView` instances, the [RegionSequenceHeaderView](Source/RegionSequenceHeaderView.h) and [PlaybackRegionView](Source/PlaybackRegionView.h) classes respond to changes in the host selection. Selected objects will be bordered by a yellow rectangle. See their `ARAEditorView` callbacks for more details. 
 
-This is the central point of communication between our plugin and the ARA host. A single instance of this 
-class will be constructed by the host per project, and it will be used by the host whenever ARA objects and 
-plugin instances need to be be constructed. Because only one instance exists per project, 
-it's also a good place to store resources that don't need to be duplicated for each plugin instance. 
-
-The host creates our `ARASampleProjectDocumentController` instance using our `doCreateDocumentController` 
-override:
-
-```
-ARA::PlugIn::DocumentController* ARA::PlugIn::DocumentController::doCreateDocumentController() noexcept
-{
-    return new ARASampleProjectDocumentController();
-}
-```
-
-In this case, we're using our document controller to create our custom `ARAAudioModification` subclass
-and manage the persistence of our ARA document / model graph state. This is done in the following overrides:
-
-```
-// our doCreateAudioModification() override, used to return an ARASampleProjectAudioModification instance
-ARA::PlugIn::AudioModification* doCreateAudioModification (ARA::PlugIn::AudioSource* audioSource, ARA::ARAAudioModificationHostRef hostRef, const ARA::PlugIn::AudioModification* optionalModificationToClone) noexcept override;
-
-// our persistence overrides, used to store and restore data saved by the host (in this case, our ARASampleProjectAudioModification reverse state)
-bool doRestoreObjectsFromStream (ARAInputStream& input, const ARA::PlugIn::RestoreObjectsFilter* filter) noexcept override;
-bool doStoreObjectsToStream (ARAOutputStream& output, const ARA::PlugIn::StoreObjectsFilter* filter) noexcept override;
-```
-
-#### `ARASampleProjectAudioProcessor`
-
-This is the implementation of our plug-in's `juce::AudioProcessor` class. Because the concept of a 
-`juce::AudioProcessor` is tightly linked to a plug-in instance, this class will take on any or all
-of the ARA plug-in instance roles as described by the API. 
-
-Our plug-in processor is very simple - if assigned the `ARAPlaybackRenderer` role, it renders all 
-assigned `ARAPlaybackRegions` by reading the region's underlying `ARAAudioSource`. 
-We allow reversing playback via our `ARASampleProjectAudioModification` class, 
-but do not modify the `ARAAudioSource` samples provided by the host.
-
-To accomplish this, we map the underlying audio source for each playback region assigned to the 
-`ARAPlaybackRenderer` to an `ARAAudioSourceReader`. For real-time playback, we wrap that reader inside a 
-`juce::BufferingAudioReader` so that we can pull samples on our rendering thread without blocking. For
-offline playback we use the `ARAAudioSourceReader` directly:
-
-```
-SharedResourcePointer<SharedTimeSliceThread> sharedTimesliceThread;
-std::map<ARAAudioSource*, std::unique_ptr<AudioFormatReader>> audioSourceReaders;
-
-void ARASampleProjectAudioProcessor::prepareToPlay (double newSampleRate, int /*samplesPerBlock*/)
-{
-    if (isARAPlaybackRenderer())
-    {
-        audioSourceReaders.clear();
-
-        for (auto playbackRegion : getARAPlaybackRenderer()->getPlaybackRegions())
-        {
-            auto audioSource = playbackRegion->getAudioModification()->getAudioSource<ARAAudioSource>();
-            if (audioSourceReaders.count (audioSource) == 0)
-            {
-                AudioFormatReader* sourceReader = new ARAAudioSourceReader (audioSource);
-
-                if (useBufferedAudioSourceReader)
-                {
-                    // if we're being used in real-time, wrap our source reader in a buffering
-                    // reader to avoid blocking while reading samples in processBlock()
-                    const int readAheadSize = roundToInt (2.0 * newSampleRate);
-                    sourceReader = new BufferingAudioReader (sourceReader, *sharedTimesliceThread, readAheadSize);
-                }
-
-                audioSourceReaders.emplace (audioSource, sourceReader);
-            }
-        }
-    }
-}
-```
-
-The `juce::BufferingAudioReader` will be constructed for all plug-in instances used as `ARAPlaybackRenderers`
-by the host. However, we can also use our processor class to render playback regions offline - the 
-[`ARAPlaybackRegionView`](#playbackregionview) does this to draw its waveform display using a `juce::AudioThumbnail`. 
-
-#### `TrackHeaderView`
-
-This view displays the "tracks" (or `ARARegionSequences`) in our ARA host's document. The track color, as
-specified by the user inside the host, is represented as a colored rectangle. If a name is provided this is
-shown as well. Because this view is closely tied to a particular `ARARegionSequence` instance, it subclasses
-`ARARegionSequence::Listener` in order to properly handle region sequence property updates and lifetime. 
-
-```
-void TrackHeaderView::didUpdateRegionSequenceProperties (ARARegionSequence* sequence)
-{
-    repaint();
-}
-
-void TrackHeaderView::willDestroyRegionSequence (ARARegionSequence* sequence)
-{
-    detachFromRegionSequence();
-}
-```
-
-We also display selection state by subclassing `ARAEditorView::Listener` - if the user selects a particular
-track in the host, we visualize this with a yellow border around the track header. 
-
-```
-void TrackHeaderView::onNewSelection (const ARA::PlugIn::ViewSelection& currentSelection)
-{
-    bool isOurRegionSequenceSelected = ARA::contains (currentSelection.getRegionSequences(), regionSequence);
-    if (isOurRegionSequenceSelected != isSelected)
-    {
-        isSelected = isOurRegionSequenceSelected;
-        repaint();
-    }
-}
-```
-
-
+`ARARegionSequence` Selection:
+<br>
 <img src="https://i.imgur.com/mouUUXp.gif"/>
 
-
-#### `PlaybackRegionView`
-
-The `PlaybackRegionView` class is responsible for visualizing the waveform of a playback region in our
-ARA document. Each `PlaybackRegionView` is responsible for drawing a single `ARAPlaybackRegion`, which is done
-using a `juce::AudioThumbnail` - we pass the `juce::AudioThumbnail::setReader` function an 
-`ARAPlaybackRegionReader` instance tasked with reading the view's playback region and let the thumbnail
-do the rest of the work, taking care to draw only the visible portion of the region to avoid reading too
-many samples per draw call. 
-
-```
-// Create a playback region reader using our non-buffered audio processor for our audio thumb
-bool useBufferedReader = false;
-auto audioProcessor = std::make_unique<ARASampleProjectAudioProcessor> (useBufferedReader);
-playbackRegionReader = new ARAPlaybackRegionReader (audioProcessor, { playbackRegion });
-audioThumb.setReader (playbackRegionReader, reinterpret_cast<intptr_t> (playbackRegionReader));
-```
-	
-Like `ARARegionSequences`, individual `ARAPlaybackRegions` also have a selection state. By subclassing
-`ARAEditorView::Listener` we can receive selection notifications and determine whether or not our given
-region is selected. The selection state is visualized by a yellow rectangular border around the waveform,
-just like the `TrackHeaderView`. 
-```
-void PlaybackRegionView::onNewSelection (const ARA::PlugIn::ViewSelection& currentSelection)
-{
-    bool isOurPlaybackRegionSelected = ARA::contains (currentSelection.getPlaybackRegions(), playbackRegion);
-    if (isOurPlaybackRegionSelected != isSelected)
-    {
-        isSelected = isOurPlaybackRegionSelected;
-        repaint();
-    }
-}
-```
-
+`ARAPlaybackRegion` Selection:
+<br>
 <img src="https://i.imgur.com/YaGCZbT.gif"/>
 
-When a playback region is double clicked, we toggle a flag in its parent `ARASampleProjectAudioModification`
-indicating that playback should be reversed. 
+### Musical Context Content
 
-```
-void PlaybackRegionView::mouseDoubleClick (const MouseEvent& /*event*/)
-{
-    // set the reverse flag on our region's audio modification when double clicked
-    auto audioModification = playbackRegion->getAudioModification<ARASampleProjectAudioModification>();
-    audioModification->setReversePlayback (! audioModification->getReversePlayback());
-
-    // send a content change notification for the modification and all associated playback regions
-    audioModification->notifyContentChanged (ARAContentUpdateScopes::samplesAreAffected());
-    for (auto araPlaybackRegion : audioModification->getPlaybackRegions<ARAPlaybackRegion>())
-        araPlaybackRegion->notifyContentChanged (ARAContentUpdateScopes::samplesAreAffected());
-}
-```
-
-<img src="https://i.imgur.com/UIhfW9f.gif"/>
-
-The regions can also be zoomed horizontally:
-
-<img src="https://i.imgur.com/SGwHhBe.gif"/>
-
-
-#### `RulersView`
-
-The `RulersView` draws a representation of the musical grid in our ARA document. We use the first 
-`ARAMusicalContext` in the document to extract tempo and bar signature content as well as any info on the
-changing chord stucture in the song using content reader classes provided by the ARA SDK:
-```
-const TempoContentReader tempoReader (musicalContext);
-const BarSignaturesContentReader barSignaturesReader (musicalContext);
-const ChordsContentReader chordsReader (musicalContext);
-```
-To begin we draw our seconds ruler representing "time on the clock" - we draw a tick mark at each second,
-emphasizing every 10th second with a longer tick mark and every minute with a bolder tick mark. 
-
-Next comes our musical timing grid - using convenience classes provided by the ARA C++ Library we can draw
-tick marks at each  musical beat along the ARA document's timeline, representing downbeats with a thicker mark. 
+The [MusicalContextView](Source/MusicalContextView.h) class draws a musical ruler containing chord, bar signature, and tempo data. 
 
 <img src="https://i.imgur.com/6uUq5QH.gif"/>
 
-Finally we draw our chord ruler, representing the chord structure of the ARA document. In a host like
-Studio One you can define a changing chord progression for your song mapped to musical beats. This ruler
-visualizes those chords above the musical timing grid as colored rectangles showing the name of the chord. 
+It uses the pitch interpretation and timeline conversion utilities provided with the ARA SDK Library to properly draw the rulers at the correct bar signature and tempo. 
 
-The RulersView also displays the host's current playhead position as a vertical line - by clicking on the grid
-of the RulersView you can instruct the host to modify its current play position - double clicking the grid will
-instruct the host to start playback. 
+### Audio Modification State Persistence
+
+Our sample project [ARASampleProjectAudioModification](Source/ARASampleProjectAudioModification.h) class stores a 'reverse' state indicating that it's playback regions should render audio in reverse. To toggle the reverse state, double click the playback regions in the plug-in UI. 
+
+<img src="https://i.imgur.com/UIhfW9f.gif"/>
+
+This state gets persisted as a part of the ARA document; see the stream persistence functions of our [ARASampleProjectDocumentController](Source/ARASampleProjectDocumentController.h) for more details. 
+
+### Host Playback Control
+
+Our plug-in can use the host supplied ARAPlaybackControllerInterface to control host playback. The host transport position can be set by clicking on the musical timeline ruler, and the host will start playback if the ruler is double-clicked. See the [MusicalContextView mouse handlers](Source/MusicalContextView.cpp) for further details. 
 
 <img src="https://i.imgur.com/cVNRNfj.gif"/>
-
-<!-- 
-TODO JUCE_ARA
-These views are mostly concerned with UI organization and placement, they may not
-be worth getting in to in the README. 
-#### DocumentView
-
-#### RegionSequenceView
--->
