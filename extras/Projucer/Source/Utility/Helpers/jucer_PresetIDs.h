@@ -75,7 +75,6 @@ namespace Ids
     DECLARE_ID (vstLegacyPath);
     DECLARE_ID (rtasPath);
     DECLARE_ID (aaxPath);
-    DECLARE_ID (araPath);
     DECLARE_ID (flags);
     DECLARE_ID (line);
     DECLARE_ID (index);
@@ -162,7 +161,6 @@ namespace Ids
     DECLARE_ID (araDocumentArchiveID);
     DECLARE_ID (araCompatibleArchiveIDs);
     DECLARE_ID (aaxFolder);
-    DECLARE_ID (araFolder);
     DECLARE_ID (compile);
     DECLARE_ID (noWarnings);
     DECLARE_ID (resource);

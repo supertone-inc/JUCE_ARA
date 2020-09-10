@@ -144,7 +144,6 @@ public:
     String getVSTLegacyPathString() const                 { return vstLegacyPathValueWrapper.getCurrentValue(); }
     String getAAXPathString() const                       { return aaxPathValueWrapper.getCurrentValue(); }
     String getRTASPathString() const                      { return rtasPathValueWrapper.getCurrentValue(); }
-    String getARAPathString() const                       { return araPathValueWrapper.getCurrentValue(); }
 
     // NB: this is the path to the parent "modules" folder that contains the named module, not the
     // module folder itself.
@@ -351,8 +350,7 @@ protected:
     const File projectFolder;
 
     //==============================================================================
-    ValueWithDefaultWrapper vstLegacyPathValueWrapper, rtasPathValueWrapper, aaxPathValueWrapper,
-                            araPathValueWrapper;
+    ValueWithDefaultWrapper vstLegacyPathValueWrapper, rtasPathValueWrapper, aaxPathValueWrapper;
 
     ValueWithDefault targetLocationValue, extraCompilerFlagsValue, extraLinkerFlagsValue, externalLibrariesValue,
                      userNotesValue, gnuExtensionsValue, bigIconValue, smallIconValue, extraPPDefsValue;
@@ -419,8 +417,8 @@ private:
     void addCommonAudioPluginSettings();
     void addLegacyVSTFolderToPathIfSpecified();
     build_tools::RelativePath getInternalVST3SDKPath();
+    build_tools::RelativePath getInternalARASDKPath();
     void addAAXFoldersToPath();
-    void addARAFoldersToPath();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ProjectExporter)
 };

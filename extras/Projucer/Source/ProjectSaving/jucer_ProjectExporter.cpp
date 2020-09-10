@@ -287,11 +287,6 @@ void ProjectExporter::createPropertyEditors (PropertyListBuilder& props)
                                                       getTargetOSForExporter() == TargetOS::getThisOS(), "*", project.getProjectFolder()),
                        "If you're building an RTAS plug-in, this must be the folder containing the RTAS SDK. This can be an absolute path, or a path relative to the Projucer project file.");
         }
-        if (project.shouldEnableARA() || project.isARAPluginHost())
-        {
-            props.add (new FilePathPropertyComponent (araPathValueWrapper.getWrappedValueWithDefault(), "ARA SDK Folder", true, getTargetOSForExporter() == TargetOS::getThisOS()),
-                       "If you're building an ARA enabled plug-in, this must be the folder containing the ARA SDK. This can be an absolute path, or a path relative to the Projucer project file.");
-        }
 
         props.add (new TextPropertyComponent (extraPPDefsValue, "Extra Preprocessor Definitions", 32768, true),
                    "Extra preprocessor definitions. Use the form \"NAME1=value NAME2=value\", using whitespace, commas, "
@@ -378,7 +373,7 @@ void ProjectExporter::addVSTPathsIfPluginOrHost()
 void ProjectExporter::addARAPathsIfPluginOrHost()
 {
     if (project.shouldEnableARA() || project.isARAPluginHost())
-        addARAFoldersToPath();
+        addToExtraSearchPaths (getInternalARASDKPath());
 }
 
 void ProjectExporter::addCommonAudioPluginSettings()
@@ -404,6 +399,13 @@ build_tools::RelativePath ProjectExporter::getInternalVST3SDKPath()
                            .getChildFile ("VST3_SDK");
 }
 
+build_tools::RelativePath ProjectExporter::getInternalARASDKPath()
+{
+    return getModuleFolderRelativeToProject ("juce_audio_processors")
+                           .getChildFile ("format_types")
+                           .getChildFile ("ARA_SDK");
+}
+
 void ProjectExporter::addAAXFoldersToPath()
 {
     auto aaxFolder = getAAXPathString();
@@ -416,14 +418,6 @@ void ProjectExporter::addAAXFoldersToPath()
         addToExtraSearchPaths (aaxFolderPath.getChildFile ("Interfaces"));
         addToExtraSearchPaths (aaxFolderPath.getChildFile ("Interfaces").getChildFile ("ACF"));
     }
-}
-
-void ProjectExporter::addARAFoldersToPath()
-{
-    auto araFolder = getARAPathString();
-
-    if (araFolder.isNotEmpty())
-        addToExtraSearchPaths (build_tools::RelativePath (araFolder, build_tools::RelativePath::projectFolder));
 }
 
 //==============================================================================
