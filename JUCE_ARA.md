@@ -237,15 +237,9 @@ We've made modifications to the Projucer to enable it to work with the ARA 2.0 S
 
 To create an ARA plugin, clone the develop branch of Celemony's [JUCE fork](https://github.com/Celemony/JUCE_ARA/tree/develop) and build the [Projucer](https://github.com/Celemony/JUCE_ARA/tree/develop/extras/Projucer) (projects for Visual Studio and Xcode are checked in to the repository.)
 
-Once you have the ARA version of the Projucer built, you must specify your global `ARA SDK` path by navigating to `File->Global Paths...`:
-
-<img src="https://i.imgur.com/fRjU8kB.png"/>
-
-This will become the default path for new ARA plug-in projects, but like other SDK paths it can  be configured per project.
-
 ### Creating an ARA enabled audio plug-in
 
-Once the SDK has been located we can create a new ARA Audio Plug-In project like so
+Once the Projucer has been built we can create a new ARA Audio Plug-In project like so
 
 <img src="https://i.imgur.com/kCfoPbo.png"/>
 
