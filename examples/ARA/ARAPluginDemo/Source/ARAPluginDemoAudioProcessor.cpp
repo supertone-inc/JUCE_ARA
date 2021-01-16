@@ -2,6 +2,8 @@
 #include "ARAPluginDemoAudioProcessorEditor.h"
 #include "ARAPluginDemoAudioModification.h"
 
+using namespace juce;
+
 //==============================================================================
 ARAPluginDemoAudioProcessor::ARAPluginDemoAudioProcessor()
      : ARAPluginDemoAudioProcessor (true)

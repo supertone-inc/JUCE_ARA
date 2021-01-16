@@ -1,6 +1,8 @@
 #include "ARAPluginDemoAudioProcessorEditor.h"
 #include "ARA_Library/Utilities/ARATimelineConversion.h"
 
+using namespace juce;
+
 static const Identifier showOnlySelectedId = "show_only_selected";
 static const Identifier scrollFollowsPlayHeadId = "scroll_follows_playhead";
 static ValueTree editorDefaultSettings (JucePlugin_Name "_defaultEditorSettings");
