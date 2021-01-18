@@ -10,7 +10,8 @@ static ValueTree editorDefaultSettings (JucePlugin_Name "_defaultEditorSettings"
 //==============================================================================
 ARAPluginDemoAudioProcessorEditor::ARAPluginDemoAudioProcessorEditor (ARAPluginDemoAudioProcessor& p)
     : AudioProcessorEditor (&p),
-      AudioProcessorEditorARAExtension (&p)
+      AudioProcessorEditorARAExtension (&p),
+      tooltip (this)
 {
     if (isARAEditorView())
     {
@@ -22,6 +23,7 @@ ARAPluginDemoAudioProcessorEditor::ARAPluginDemoAudioProcessorEditor (ARAPluginD
         addAndMakeVisible (documentView.get());
 
         onlySelectedTracksButton.setButtonText ("Selected Tracks Only");
+        onlySelectedTracksButton.setTooltip ("If enabled, only the track(s) recently selected in the host will be shown.");
         onlySelectedTracksButton.setClickingTogglesState (true);
         onlySelectedTracksButton.setToggleState (documentView->isShowingOnlySelectedRegionSequences(), dontSendNotification);
         onlySelectedTracksButton.onClick = [this]
@@ -33,6 +35,7 @@ ARAPluginDemoAudioProcessorEditor::ARAPluginDemoAudioProcessorEditor (ARAPluginD
         addAndMakeVisible (onlySelectedTracksButton);
 
         followPlayHeadButton.setButtonText ("Follow Play-Head");
+        followPlayHeadButton.setTooltip ("If enabled, view will scroll automatically when playhead leaves currently visible time range.");
         followPlayHeadButton.setClickingTogglesState (true);
         followPlayHeadButton.setToggleState (documentView->isScrollFollowingPlayHead(), dontSendNotification);
         followPlayHeadButton.onClick = [this]
@@ -43,7 +46,9 @@ ARAPluginDemoAudioProcessorEditor::ARAPluginDemoAudioProcessorEditor (ARAPluginD
         addAndMakeVisible (followPlayHeadButton);
 
         horizontalZoomInButton.setButtonText("+");
+        horizontalZoomInButton.setTooltip ("Zoom in horizontally.");
         horizontalZoomOutButton.setButtonText("-");
+        horizontalZoomOutButton.setTooltip ("Zoom out horizontally.");
         constexpr static double zoomStepFactor = 1.5; // TODO JUCE_ARA MSVC requires local constexpr to be static, use std::latest to fix
         horizontalZoomInButton.onClick = [this]
         {
@@ -57,9 +62,11 @@ ARAPluginDemoAudioProcessorEditor::ARAPluginDemoAudioProcessorEditor (ARAPluginD
         addAndMakeVisible (horizontalZoomOutButton);
 
         playheadLinearPositionLabel.setJustificationType (Justification::centred);
-        playheadMusicalPositionLabel.setJustificationType (Justification::centred);
-        addAndMakeVisible (playheadMusicalPositionLabel);
+        playheadLinearPositionLabel.setTooltip ("Playhead position in hours:minutes:seconds:milliseconds.");
         addAndMakeVisible (playheadLinearPositionLabel);
+        playheadMusicalPositionLabel.setJustificationType (Justification::centred);
+        playheadMusicalPositionLabel.setTooltip ("Playhead position in bars:beats:ticks.");
+        addAndMakeVisible (playheadMusicalPositionLabel);
         startTimerHz (20);
     }
 
