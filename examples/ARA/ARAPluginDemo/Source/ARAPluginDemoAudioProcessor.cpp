@@ -189,42 +189,42 @@ void ARAPluginDemoAudioProcessor::processBlock (AudioBuffer<float>& buffer, Midi
 
             if (isPlaying)
             {
-                int64 sampleStart = timeInSamples;
-                int64 sampleEnd = timeInSamples + buffer.getNumSamples();
+                const auto sampleStart = timeInSamples;
+                const auto sampleEnd = timeInSamples + buffer.getNumSamples();
                 for (auto playbackRegion : getARAPlaybackRenderer()->getPlaybackRegions())
                 {
                     // get the audio source for this region and make sure we have an audio source reader for it
-                    auto audioSource = playbackRegion->getAudioModification()->getAudioSource<ARAAudioSource>();
-                    auto readerIt = audioSourceReaders.find(audioSource);
+                    const auto audioSource = playbackRegion->getAudioModification()->getAudioSource<ARAAudioSource>();
+                    const auto readerIt = audioSourceReaders.find (audioSource);
                     if (readerIt == audioSourceReaders.end())
                     {
                         success = false;
                         continue;
                     }
-                    auto& reader = readerIt->second;
+                    const auto& reader = readerIt->second;
 
                     // this simplified test code "rendering" only produces audio if sample rate and channel count match
                     if ((audioSource->getChannelCount() != getTotalNumOutputChannels()) || (audioSource->getSampleRate() != getSampleRate()))
                         continue;
 
                     // evaluate region borders in song time, calculate sample range to copy in song time
-                    int64 regionStartSample = playbackRegion->getStartInPlaybackSamples (getSampleRate());
+                    const auto regionStartSample = playbackRegion->getStartInPlaybackSamples (getSampleRate());
                     if (sampleEnd <= regionStartSample)
                         continue;
 
-                    int64 regionEndSample = playbackRegion->getEndInPlaybackSamples (getSampleRate());
+                    const auto regionEndSample = playbackRegion->getEndInPlaybackSamples (getSampleRate());
                     if (regionEndSample <= sampleStart)
                         continue;
 
-                    int64 startSongSample = jmax (regionStartSample, sampleStart);
-                    int64 endSongSample = jmin (regionEndSample, sampleEnd);
+                    auto startSongSample = jmax (regionStartSample, sampleStart);
+                    auto endSongSample = jmin (regionEndSample, sampleEnd);
 
                     // calculate offset between song and audio source samples, clip at region borders in audio source samples
                     // (if a plug-in supports time stretching, it will also need to reflect the stretch factor here)
-                    int64 offsetToPlaybackRegion = playbackRegion->getStartInAudioModificationSamples() - regionStartSample;
+                    const auto offsetToPlaybackRegion = playbackRegion->getStartInAudioModificationSamples() - regionStartSample;
 
-                    int64 startAvailableSourceSamples = jmax (0LL, playbackRegion->getStartInAudioModificationSamples());
-                    int64 endAvailableSourceSamples = jmin (audioSource->getSampleCount(), playbackRegion->getEndInAudioModificationSamples());
+                    const auto startAvailableSourceSamples = jmax (0LL, playbackRegion->getStartInAudioModificationSamples());
+                    const auto endAvailableSourceSamples = jmin (audioSource->getSampleCount(), playbackRegion->getEndInAudioModificationSamples());
 
                     startSongSample = jmax (startSongSample, startAvailableSourceSamples - offsetToPlaybackRegion);
                     endSongSample = jmin (endSongSample, endAvailableSourceSamples - offsetToPlaybackRegion);
@@ -232,9 +232,9 @@ void ARAPluginDemoAudioProcessor::processBlock (AudioBuffer<float>& buffer, Midi
                         continue;
 
                     // calculate buffer offsets
-                    int startInDestBuffer = (int) (startSongSample - sampleStart);
-                    int64 startInSource = startSongSample + offsetToPlaybackRegion;
-                    int numSamplesToRead = (int) (endSongSample - startSongSample);
+                    const int startInDestBuffer = (int) (startSongSample - sampleStart);
+                    const auto startInSource = startSongSample + offsetToPlaybackRegion;
+                    const int numSamplesToRead = (int) (endSongSample - startSongSample);
 
                     // if we're using a buffering reader then set the appropriate timeout
                     if (useBufferedAudioSourceReader)
@@ -244,19 +244,16 @@ void ARAPluginDemoAudioProcessor::processBlock (AudioBuffer<float>& buffer, Midi
                         bufferingReader->setReadTimeout (isNonRealtime() ? 100 : 0);
                     }
 
-                    auto audioModification = playbackRegion->getAudioModification<ARAPluginDemoAudioModification>();
-
                     // read samples
+                    const auto audioModification = playbackRegion->getAudioModification<ARAPluginDemoAudioModification>();
                     bool bufferSuccess;
                     if (didRenderFirstRegion)
                     {
                         if (audioModification->getReversePlayback())
                         {
-                            auto reverseStartInSource = audioSource->getSampleCount() - startInSource;
-                            auto reverseEndInSource = reverseStartInSource - numSamplesToRead;
-                            bufferSuccess = reader->read (tempBuffer.get(), 0, numSamplesToRead, reverseEndInSource, true, true);
-                            if (bufferSuccess)
-                                tempBuffer->reverse (0, numSamplesToRead);
+                            const auto reversedStartInSource = audioSource->getSampleCount() - startInSource - numSamplesToRead;
+                            bufferSuccess = reader->read (tempBuffer.get(), 0, numSamplesToRead, reversedStartInSource, true, true);
+                            tempBuffer->reverse (0, numSamplesToRead);
                         }
                         else
                         {
@@ -267,17 +264,15 @@ void ARAPluginDemoAudioProcessor::processBlock (AudioBuffer<float>& buffer, Midi
                         // if successful, mix local buffer into the output buffer
                         if (bufferSuccess)
                             for (int c = 0; c < getTotalNumOutputChannels(); ++c)
-                                buffer.addFrom(c, startInDestBuffer, *tempBuffer, c, 0, numSamplesToRead);
+                                buffer.addFrom (c, startInDestBuffer, *tempBuffer, c, 0, numSamplesToRead);
                     }
                     else
                     {
                         if (audioModification->getReversePlayback())
                         {
-                            auto reverseStartInSource = audioSource->getSampleCount() - startInSource;
-                            auto reverseEndInSource = reverseStartInSource - numSamplesToRead;
-                            bufferSuccess = reader->read (&buffer, 0, numSamplesToRead, reverseEndInSource, true, true);
-                            if (bufferSuccess)
-                                buffer.reverse (0, numSamplesToRead);
+                            const auto reversedStartInSource = audioSource->getSampleCount() - startInSource - numSamplesToRead;
+                            bufferSuccess = reader->read (&buffer, 0, numSamplesToRead, reversedStartInSource, true, true);
+                            buffer.reverse (0, numSamplesToRead);
                         }
                         else
                         {
@@ -289,12 +284,12 @@ void ARAPluginDemoAudioProcessor::processBlock (AudioBuffer<float>& buffer, Midi
                         if (bufferSuccess)
                         {
                             if (startInDestBuffer != 0)
-                                buffer.clear(0, startInDestBuffer);
+                                buffer.clear (0, startInDestBuffer);
 
                             int samplesWritten = startInDestBuffer + numSamplesToRead;
                             int remainingSamples = buffer.getNumSamples() - samplesWritten;
                             if (remainingSamples != 0)
-                                buffer.clear(samplesWritten, remainingSamples);
+                                buffer.clear (samplesWritten, remainingSamples);
 
                             didRenderFirstRegion = true;
                         }
@@ -319,7 +314,7 @@ void ARAPluginDemoAudioProcessor::processBlock (AudioBuffer<float>& buffer, Midi
     {
         // this sample plug-in requires to be used with ARA - we just pass through otherwise.
         // in an actual plug-in, proper non-ARA rendering would be invoked here
-        processBlockBypassed(buffer, midiMessages);
+        processBlockBypassed (buffer, midiMessages);
     }
 
     lastProcessBlockSucceeded = success;
